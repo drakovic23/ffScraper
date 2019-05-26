@@ -7,6 +7,7 @@ Cheerios (https://github.com/cheeriojs/cheerio)
 
 Knowledge of running/building a Node.Js application
 
+Knowledge of JSON
 ## Description
 ffScraper is a Node.Js server that provides a REST API you can use to scrape events from ForexFactory which provides you 
 with fundamental financial data released by governments and institutions from around the world.
