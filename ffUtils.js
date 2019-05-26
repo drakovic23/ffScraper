@@ -59,7 +59,6 @@ exports.getMonthlyFxHTML = (date) =>
 
 exports.getHTML = (Url) =>
 {
-    //console.log(Url);
     return new Promise((resolve,reject) => {
         https.get(Url, (resp) =>{
             let returnData = "";
@@ -72,31 +71,15 @@ exports.getHTML = (Url) =>
                     returnData += chunk;
                 });
                 resp.on("end", () => {
-                    //console.log(returnData);
                     resolve(returnData);
                 });
             }
 
         }).on("error", (err) => {
-            //console.log("Error: " + err.message);
             reject(err.message);
         });
 
     });
-};
-
-
-//A forex data object example:
-let forexObject = {
-    eventid: '123123',
-    date: new Date(),
-    time: "2:32 am",
-    currency: 'EUR',
-    impact: 'Low', //Low, Medium, High
-    event: 'BOJ Press Conference',
-    actual: '14.7%',
-    forecast: '0',
-    previous: '14.5%'
 };
 
 exports.parseHTML = (htmlString) =>
@@ -120,7 +103,6 @@ exports.parseHTML = (htmlString) =>
             if($(this).find('span.date').text() !== null && $(this).find('span.date').text() !== "" )
             {
                 tempDate = $(this).find('span.date').text();
-                //console.log(tempDate);
                 if(isDailyData) //if daily data then remove the name of the day (we only need day/month)
                     tempDate = tempDate.slice(3,tempDate.length) + "." + year;
             }

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ffUtil = require('../ffUtils');
+
 /* GET monthly data */
 router.get('/monthly/:month', (req, res, next) => {
     if(req.params.month !== undefined && req.params.month !== null)
@@ -17,7 +18,6 @@ router.get('/monthly/:month', (req, res, next) => {
         res.status(500).end();
     }
 });
-
 /* GET daily data */
 router.get('/daily/:date', (req,res,next) => {
     if(req.params.date !== undefined && req.params.date !== null)
