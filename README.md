@@ -23,8 +23,8 @@ Access to more financial indicators
 Data crunching and analysis
 ### Below is an example of an event object
 ```
-//A forex data object example:
-let forexObject = {
+//A event object example:
+let eventObject = {
     eventid: '123123',
     date: new Date(),
     time: "2:32 am",
@@ -42,7 +42,7 @@ let forexObject = {
 Making a GET request to /monthly/:month with a month and year will return all events in that time frame
 
 
-As an example: /monthly/Apr.2019 will return all events for April 2019
+As an example: /monthly/Apr.2019 will return an array of events for April 2019
 
 
 Please note there is no date validation in place yet, but any dates considered valid by the Date class in JavaScript should work.
@@ -52,6 +52,6 @@ Please note there is no date validation in place yet, but any dates considered v
 Making a get request to /daily/:date is similar to the monthly request, however here we provide a full date
 
 
-As an example: /daily/Apr15.2019 will return all events for April 15, 2019
+As an example: /daily/Apr15.2019 will return an array of events for April 15, 2019
 
 
