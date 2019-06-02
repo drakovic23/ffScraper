@@ -104,7 +104,6 @@ exports.parseHTML = (htmlString, insertEvents = false) =>
         const $ = cheerio.load(htmlString);
         let calendarHref = $('a.calendar__pagination--next').attr('href');
         let temp = calendarHref.split(/[?=]/);
-        let isDailyData = temp[1].toLowerCase() === 'day';
         let year = "";
         let startIndex = temp[2].length - 4;
         for(let x = startIndex; x < temp[2].length;x++)
@@ -120,8 +119,6 @@ exports.parseHTML = (htmlString, insertEvents = false) =>
             if($(this).find('span.date').text() !== null && $(this).find('span.date').text() !== "" )
             {
                 tempDate = $(this).find('span.date').text();
-                let day = tempDate[0] + tempDate[1] + tempDate[2];
-                let month = tempDate[3] + tempDate[4] + tempDate[5];
                 tempDate = tempDate.slice(3,tempDate.length) + "." + year;
 
             }
@@ -157,10 +154,6 @@ exports.parseHTML = (htmlString, insertEvents = false) =>
                 newEvent.impact = "Medium";
 
             eventArray.push(newEvent); //push our new element
-            /*if(insertEvents === true)
-            {
-                exports.insertEvent(newEvent);
-            }*/
         });
         resolve(eventArray);
         if(insertEvents === true)
