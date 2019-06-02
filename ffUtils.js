@@ -2,7 +2,17 @@ var exports = module.exports = {};
 const cheerio = require('cheerio');
 const https = require('https');
 const fs = require('fs');
-
+const mongoose = require('mongoose');
+const eventSchema = require('./schemas/event');
+const Event = mongoose.model('Events',eventSchema, 'Events');
+//Connect to our MongoDB
+mongoose.connect('',
+    {useNewUrlParser: true});
+let db = mongoose.connection;
+db.on('error', console.error.bind(console,'connection error: '));
+db.once('open', () => {
+    console.log('Connected to MongoDB successfully');
+});
 //Date takes a JavaScript Date object and returns a formatted date suitable for ForexFactory
 function formatDate(Date, OnlyMonthYear = 0)
 {
@@ -27,42 +37,8 @@ function getCurrentDate()
     let currentDate = new Date();
     return currentDate.toDateString() + "." + currentDate.getHours() + currentDate.getMinutes();
 }
-//Takes a JavaScript date object and returns the ForexFactory HTML for a single day
-exports.getDailyFxHTML = (date) =>
-{
-    return new Promise((resolve, reject) => {
-        if(date === undefined)
-            reject("Date cannot be undefined");
-        else
-        {
-            //TODO: Verify typeof date
-            let urlString = "https://www.forexfactory.com/calendar.php?day=" + formatDate(date);
-            console.log(urlString);
-            exports.getHTML(urlString).then((ret) => {
-                resolve(ret);
-            }).catch((err) => {reject(err)});
-        }
-    });
-};
-
-exports.getMonthlyFxHTML = (date) =>
-{
-    return new Promise((resolve, reject) => {
-        if(date === undefined)
-            reject("Date cannot be undefined");
-        else
-        {
-            //TODO: Verify typeof date
-            let urlString = "https://www.forexfactory.com/calendar.php?month=" + formatDate(date,1);
-            console.log(urlString);
-            exports.getHTML(urlString).then((ret) => {
-                resolve(ret);
-            }).catch((err) => {reject(err)});
-        }
-    });
-};
-
-exports.getHTML = (Url) =>
+//Takes a URL as a string and returns the HTML of that web page
+function getHTML(Url)
 {
     return new Promise((resolve,reject) => {
         https.get(Url, (resp) =>{
@@ -79,38 +55,75 @@ exports.getHTML = (Url) =>
                     resolve(returnData);
                 });
             }
-
         }).on("error", (err) => {
             reject(err.message);
         });
     });
+}
+//Takes a JavaScript date object and returns the ForexFactory HTML for a single day
+exports.getDailyFxHTML = (date) =>
+{
+    return new Promise((resolve, reject) => {
+        if(date === undefined)
+            reject("Date cannot be undefined");
+        else
+        {
+            //TODO: Verify typeof date
+            let urlString = "https://www.forexfactory.com/calendar.php?day=" + formatDate(date);
+            console.log(urlString);
+            getHTML(urlString).then((ret) => {
+                resolve(ret);
+            }).catch((err) => {reject(err)});
+        }
+    });
 };
-
+exports.getMonthlyFxHTML = (date) =>
+{
+    return new Promise((resolve, reject) => {
+        if(date === undefined)
+            reject("Date cannot be undefined");
+        else
+        {
+            //TODO: Verify typeof date
+            let urlString = "https://www.forexfactory.com/calendar.php?month=" + formatDate(date,1);
+            console.log(urlString);
+            getHTML(urlString).then((ret) => {
+                resolve(ret);
+            }).catch((err) => {reject(err)});
+        }
+    });
+};
 //This will parse the daily or monthly HTML and return an array of event objects
-//The calendar href in the html gives us the year the events took place and if it is a daily/monthly query
-exports.parseHTML = (htmlString) =>
+//The calendar href in the html gives us the year the events took place and if it is a daily/monthly req
+exports.parseHTML = (htmlString, insertEvents = false) =>
 {
     return new Promise((resolve,reject) => {
         if(htmlString === undefined || htmlString === null)
-            reject('htmlString param in parseHTML cannot be null or undefined');
+            throw new Error('htmlString param in parseHTML cannot be null or undefined');
 
         const $ = cheerio.load(htmlString);
         let calendarHref = $('a.calendar__pagination--next').attr('href');
         let temp = calendarHref.split(/[?=]/);
         let isDailyData = temp[1].toLowerCase() === 'day';
-        let year = temp[2][6] + temp[2][7] + temp[2][8] + temp[2][9];
+        let year = "";
+        let startIndex = temp[2].length - 4;
+        for(let x = startIndex; x < temp[2].length;x++)
+        {
+            year += temp[2][x];
+        }
         let tempDate = "";//if there is a group of events on same day the first event on the page contains the date tag
         let timeOfEvent = "";//time works the same way
-        let eventArray = []; //Our return array that holds all event objects
-
+        let eventArray = []; //Array of events that we will resolve
         $('tr.calendar__row--grey').map(function(i, el)
         {
             //Get month and day of event
             if($(this).find('span.date').text() !== null && $(this).find('span.date').text() !== "" )
             {
                 tempDate = $(this).find('span.date').text();
-                if(isDailyData) //if daily data then remove the name of the day (we only need day/month)
-                    tempDate = tempDate.slice(3,tempDate.length) + "." + year;
+                let day = tempDate[0] + tempDate[1] + tempDate[2];
+                let month = tempDate[3] + tempDate[4] + tempDate[5];
+                tempDate = tempDate.slice(3,tempDate.length) + "." + year;
+
             }
             //Get currency symbol for this event
             let currencySymbol = $(this).find('td.currency').text();
@@ -118,11 +131,10 @@ exports.parseHTML = (htmlString) =>
             //Get time of event
             if($(this).find('td.time').text() !== null && $(this).find('td.time').text() !== "")
                 timeOfEvent = $(this).find('td.time').text();
-            //Start creating our new element
-            var newElement = {
+            var newEvent = {
                 eventid: $(this).attr('data-eventid'),
                 event: $(this).find('span.calendar__event-title').html(),
-                date: new Date(tempDate), //TODO: Set time of event
+                date: new Date(tempDate),
                 impact: '',
                 currency: currencySymbol,
                 actual: $(this).find('td.actual').text(),
@@ -133,20 +145,29 @@ exports.parseHTML = (htmlString) =>
             //Find forecasted impact for event
             if($(this).find('span.high').html() !== undefined &&
                 $(this).find('span.high').html() !== null)
-                newElement.impact = "High";
+                newEvent.impact = "High";
             else if($(this).find('span.low').html() !== undefined &&
                 $(this).find('span.low').html() !== null)
-                newElement.impact = "Low";
+                newEvent.impact = "Low";
             else if($(this).find('span.holiday').html() !== undefined &&
                 $(this).find('span.holiday').html() !== null)
-                newElement.impact = "Holiday";
+                newEvent.impact = "Holiday";
             else if($(this).find('span.medium').html() !== undefined &&
                 $(this).find('span.medium').html() !== null)
-                newElement.impact = "Medium";
+                newEvent.impact = "Medium";
 
-            eventArray.push(newElement); //push our new element
+            eventArray.push(newEvent); //push our new element
+            /*if(insertEvents === true)
+            {
+                exports.insertEvent(newEvent);
+            }*/
         });
         resolve(eventArray);
+        if(insertEvents === true)
+        {
+            exports.insertMultipleEvents(eventArray);
+        }
+
     });
 };
 //Save an array of events to a file
@@ -158,3 +179,38 @@ exports.saveEventsToFile = (eventArray) => {
             console.log('File saved');
     })
 };
+//Insert a single event into the db
+exports.insertEvent = (event) => {
+    let newEvent = new Event({
+        eventid: event.eventid,
+        date: event.date,
+        time: event.time,
+        currency: event.currency,
+        impact: event.impact,
+        event: event.event,
+        actual: event.actual,
+        forecast: event.forecast,
+        previous: event.previous,
+    });
+    newEvent.save((err) => {
+        if (err)
+            console.warn(err);
+        else
+            console.log('Saved event: ' + event.eventid + ' to db');
+    })
+};
+exports.insertMultipleEvents = (eventArray) => {
+  Event.collection.insertMany(eventArray, (err, docs) => {
+      if (err)
+      return console.error(err);
+      else
+          console.log('Event array of size: ' + eventArray.length + " has been inserted");
+
+  })
+};
+
+exports.getMonthlyFxHTML(new Date('Jun.2016')).then((html) => {
+   exports.parseHTML(html,true).then((eventArray) => {
+
+   })
+});
