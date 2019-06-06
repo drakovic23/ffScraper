@@ -95,6 +95,7 @@ exports.getMonthlyFxHTML = (date) =>
 };
 //This will parse the daily or monthly HTML and return an array of event objects
 //The calendar href in the html gives us the year the events took place and if it is a daily/monthly req
+//If insertEvents argument is true then this will also insert an array of events into the DB
 exports.parseHTML = (htmlString, insertEvents = false) =>
 {
     return new Promise((resolve,reject) => {
@@ -198,7 +199,6 @@ exports.insertMultipleEvents = (eventArray) => {
       return console.error(err);
       else
           console.log('Event array of size: ' + eventArray.length + " has been inserted");
-
   })
 };
 
