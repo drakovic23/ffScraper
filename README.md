@@ -45,7 +45,7 @@ Making a GET request to /monthly/:month with a month and year will return all ev
 As an example: /monthly/Apr.2019 will return an array of events for April 2019
 
 
-Please note there is no date validation in place yet, but any dates considered valid by the Date class in JavaScript should work.
+Please note there is no date validation in place yet, but any dates considered valid by the Date object constructor in JavaScript should work.
 
 
 ### GET /daily/:date

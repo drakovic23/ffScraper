@@ -34,4 +34,5 @@ router.get('/daily/:date', (req,res,next) => {
         res.status(500).end();
     }
 });
+
 module.exports = router;

@@ -42,7 +42,6 @@ function getHTML(Url)
 {
     return new Promise((resolve,reject) => {
         https.get(Url, (resp) =>{
-
             let returnData = "";
             if(Url === undefined || Url === "")
                 throw new Error('Url is a mandatory param');
@@ -60,6 +59,25 @@ function getHTML(Url)
         });
     });
 }
+exports.insertAllData = () =>
+{
+    let currentDate = new Date();
+    let timeObj = setInterval(() => {
+        if(formatDate(currentDate) === "Dec.2006") //FF data only goes as far back as Jan 2007
+        {
+            clearInterval(timeObj);
+        }
+        exports.getMonthlyFxHTML(currentDate).then((html) => {
+            exports.parseHTML(html).then((eventArray) => {
+                exports.insertMultipleEvents(eventArray);
+                console.log(formatDate(new Date(currentDate)));
+                console.log(currentDate.getMonth());
+                currentDate.setMonth(currentDate.getMonth() - 1);
+            })
+        });
+    },2000)
+};
+
 //Takes a JavaScript date object and returns the ForexFactory HTML for a single day
 exports.getDailyFxHTML = (date) =>
 {
@@ -73,7 +91,7 @@ exports.getDailyFxHTML = (date) =>
             console.log(urlString);
             getHTML(urlString).then((ret) => {
                 resolve(ret);
-            }).catch((err) => {reject(err)});
+            }).catch((err) => {reject();console.error(err);});
         }
     });
 };
@@ -165,7 +183,8 @@ exports.parseHTML = (htmlString, insertEvents = false) =>
     });
 };
 //Save an array of events to a file
-exports.saveEventsToFile = (eventArray) => {
+exports.saveEventsToFile = (eventArray) =>
+{
     fs.writeFile(getCurrentDate() + ".json",JSON.stringify(eventArray),'utf8', (err) => {
         if(err)
             throw err;
@@ -174,7 +193,8 @@ exports.saveEventsToFile = (eventArray) => {
     })
 };
 //Insert a single event into the db
-exports.insertEvent = (event) => {
+exports.insertEvent = (event) =>
+{
     let newEvent = new Event({
         eventid: event.eventid,
         date: event.date,
@@ -188,12 +208,13 @@ exports.insertEvent = (event) => {
     });
     newEvent.save((err) => {
         if (err)
-            console.warn(err);
+            console.error(err);
         else
             console.log('Saved event: ' + event.eventid + ' to db');
     })
 };
-exports.insertMultipleEvents = (eventArray) => {
+exports.insertMultipleEvents = (eventArray) =>
+{
   Event.collection.insertMany(eventArray, (err, docs) => {
       if (err)
       return console.error(err);
@@ -201,9 +222,43 @@ exports.insertMultipleEvents = (eventArray) => {
           console.log('Event array of size: ' + eventArray.length + " has been inserted");
   })
 };
+exports.findEventById = (eventId) =>
+{
+    return new Promise((resolve,reject) => {
+        if (isNaN(eventId))
+            throw new Error('exports.findEventById - eventId NaN');
+        Event.find({
+            eventid: eventId,
+        }).exec((err, event) => {
+            if (err)
+                reject(err);
+            resolve(event);
+        })
+    });
+};
+exports.findEventByName = (eventName) =>
+{
+    return new Promise((resolve,reject) => {
+        Event.find({
+            event: {$regex: new RegExp(eventName, "i")} //Find any event containing string eventName
+        }).exec((err, event) => {
+            if (err)
+                reject(err);
+            resolve(event);
+        })
+    });
+};
 
-exports.getMonthlyFxHTML(new Date('Jun.2016')).then((html) => {
-   exports.parseHTML(html,true).then((eventArray) => {
-
-   })
-});
+//Takes a date object and returns all events for that date
+exports.findEventByDate = (eventDate) =>
+{
+    return new Promise((resolve,reject) => {
+        Event.find({
+            date: {$eq: eventDate.toDateString()}
+        }).exec((err, event) => {
+            if (err)
+                reject(err);
+            resolve(event);
+        })
+    });
+};
