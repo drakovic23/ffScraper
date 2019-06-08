@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const eventSchema = require('./schemas/event');
 const Event = mongoose.model('Events',eventSchema, 'Events');
 //Connect to our MongoDB
-mongoose.connect('',
+mongoose.connect('mongodb+srv://Main:iCgynwKIdI0ZCmgQ@cluster0-utazm.mongodb.net/db_primary?retryWrites=true&w=majority',
     {useNewUrlParser: true});
 let db = mongoose.connection;
 db.on('error', console.error.bind(console,'connection error: '));
@@ -59,7 +59,7 @@ function getHTML(Url)
         });
     });
 }
-exports.insertAllData = () =>
+function insertAllData()
 {
     let currentDate = new Date();
     let timeObj = setInterval(() => {
@@ -76,7 +76,7 @@ exports.insertAllData = () =>
             })
         });
     },2000)
-};
+}
 
 //Takes a JavaScript date object and returns the ForexFactory HTML for a single day
 exports.getDailyFxHTML = (date) =>
@@ -260,5 +260,30 @@ exports.findEventByDate = (eventDate) =>
                 reject(err);
             resolve(event);
         })
+    });
+};
+//Find all events within this date range
+exports.findEventDateRange = (dateStart,dateEnd) => {
+  return new Promise((resolve,reject) => {
+      Event.find({
+          date: {$lte: dateEnd.toDateString(), $gte: dateStart.toDateString()}
+      }).exec((err, event) => {
+          if(err)
+              reject(err);
+          resolve(event);
+      })
+  });
+};
+exports.findEventNameDate = (dateStart,dateEnd,eventName) =>
+{
+    return new Promise((resolve,reject) => {
+       Event.find({
+           date: {$lte: dateEnd.toDateString(), $gte: dateStart.toDateString()},
+           event: {$regex: new RegExp(eventName, "i")}
+       }).exec((err,event) => {
+           if(err)
+               reject(err);
+           resolve(event);
+       })
     });
 };
