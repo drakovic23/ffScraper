@@ -41,13 +41,13 @@ router.get('/event/:name', (req,res,next) => {
    else
        res.status(500).end();
 });
-/* POST events within a range of 2 dates */
+/* GET events within a range of 2 dates */
 router.post('/range', (req,res,next) => {
     if(req.body!== undefined && req.body !== null)
     {
         ffUtil.findEventDateRange(new Date(req.body.datestart),
             new Date(req.body.dateend)).then((result) => {
-            res.send(result);
+                res.send(result);
         }).catch((err) => {
             res.status(500).end();
             console.error(err);
@@ -56,6 +56,7 @@ router.post('/range', (req,res,next) => {
     else
         res.status(500).end()
 });
+/* POST events within date range that have event name */
 router.post('/name/range', (req,res,next) => {
     if(req.body !== undefined && req.body.body !== null)
     {

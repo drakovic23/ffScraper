@@ -5,8 +5,8 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const eventSchema = require('./schemas/event');
 const Event = mongoose.model('Events',eventSchema, 'Events');
-//Connect to our MongoDB
-mongoose.connect('mongodb+srv://Main:iCgynwKIdI0ZCmgQ@cluster0-utazm.mongodb.net/db_primary?retryWrites=true&w=majority',
+//Connect to our MongoDB, the key below is an example
+mongoose.connect('',
     {useNewUrlParser: true});
 let db = mongoose.connection;
 db.on('error', console.error.bind(console,'connection error: '));
@@ -63,7 +63,7 @@ function insertAllData()
 {
     let currentDate = new Date();
     let timeObj = setInterval(() => {
-        if(formatDate(currentDate) === "Dec.2006") //FF data only goes as far back as Jan 2007
+        if(currentDate.getMonth() === 11 && currentDate.getFullYear() === 2006) //FF data only goes as far back as Jan 2007
         {
             clearInterval(timeObj);
         }
@@ -73,6 +73,10 @@ function insertAllData()
                 console.log(formatDate(new Date(currentDate)));
                 console.log(currentDate.getMonth());
                 currentDate.setMonth(currentDate.getMonth() - 1);
+            }).catch((err) => {
+                console.error(err);
+            }).catch((err) => {
+                console.error(err);
             })
         });
     },2000)
@@ -86,7 +90,7 @@ exports.getDailyFxHTML = (date) =>
             reject("Date cannot be undefined");
         else
         {
-            //TODO: Verify typeof date
+            //TODO: typeof date
             let urlString = "https://www.forexfactory.com/calendar.php?day=" + formatDate(date);
             console.log(urlString);
             getHTML(urlString).then((ret) => {
@@ -102,7 +106,6 @@ exports.getMonthlyFxHTML = (date) =>
             reject("Date cannot be undefined");
         else
         {
-            //TODO: Verify typeof date
             let urlString = "https://www.forexfactory.com/calendar.php?month=" + formatDate(date,1);
             console.log(urlString);
             getHTML(urlString).then((ret) => {
@@ -274,6 +277,7 @@ exports.findEventDateRange = (dateStart,dateEnd) => {
       })
   });
 };
+//Find event with name between this date range
 exports.findEventNameDate = (dateStart,dateEnd,eventName) =>
 {
     return new Promise((resolve,reject) => {
@@ -287,3 +291,5 @@ exports.findEventNameDate = (dateStart,dateEnd,eventName) =>
        })
     });
 };
+
+//insertAllData();
